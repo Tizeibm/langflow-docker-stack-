@@ -1,0 +1,131 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    user: "999:999"          # utilisateur non-root de l'image postgres officielle
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+
+  langflow:
+    image: langflowai/langflow:latest
+    restart: unless-stopped
+    user: "1003:1004"        # utilisateur non-root dédié (langflow-svc, uid:gid)
+    depends_on:
+      - postgres
+    environment:
+      HOME: /app/langflow
+      LANGFLOW_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      LANGFLOW_AUTO_LOGIN: "false"
+      LANGFLOW_SUPERUSER: ${LANGFLOW_SUPERUSER}
+      LANGFLOW_SUPERUSER_PASSWORD: ${LANGFLOW_SUPERUSER_PASSWORD}
+      LANGFLOW_SECRET_KEY: ${LANGFLOW_SECRET_KEY}
+      LANGFLOW_SSRF_ALLOWED_HOSTS: "ollama,vectordb,mongodb,postgres,localhost,127.0.0.1"
+    volumes:
+      - langflow_data:/app/langflow
+    ports:
+      - "127.0.0.1:7860:7860"   # accessible uniquement depuis l'hôte, le reverse proxy s'y connecte
+    networks:
+      - app-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: false            # Langflow écrit dans /app/langflow, garder false sauf tmpfs dédié
+    tmpfs:
+      - /tmp
+
+  vectordb:
+    image: pgvector/pgvector:0.8.5-pg18-trixie
+    restart: unless-stopped
+    user: "999:999"
+    environment:
+      POSTGRES_USER: ${VECTORDB_USER}
+      POSTGRES_PASSWORD: ${VECTORDB_PASSWORD}
+      POSTGRES_DB: ${VECTORDB_DB}
+    volumes:
+      - vectordb_data:/var/lib/postgresql
+    ports:
+      - "5433:5432"          # exposé pour connexion directe (DBeaver, psql...)
+    networks:
+      - app-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+
+  mongodb:
+    image: mongodb/mongodb-atlas-local:8.2.6
+    restart: unless-stopped
+    environment:
+      MONGODB_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGODB_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    ports:
+      - "27018:27017"
+    networks:
+      - app-net
+    # Note : l'image officielle mongodb-atlas-local tourne en root par défaut
+    # On limite les capabilities au strict nécessaire à défaut de rootless complet.
+
+  ollama:
+    image: ollama/ollama:0.32.2-rc0
+    restart: unless-stopped
+    environment:
+      HOME: /root/.ollama       # l'image officielle Ollama tourne en root
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - app-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    # deploy:                    # décommente si l'hôte a un GPU NVIDIA + nvidia-container-toolkit
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  mongodb_config:
+  postgres_data:
+  langflow_data:
+  vectordb_data:
+  mongodb_data:
+  ollama_data:
+
+networks:
+  app-net:
+    driver: bridge
