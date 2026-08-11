@@ -20,15 +20,6 @@ L'ensemble de la stack repose sur des conteneurs Docker communiquant via un rés
 Pour lancer cette infrastructure en local ou sur un serveur (environnement Linux recommandé) :
 *   [Docker](https://docs.docker.com/get-docker/) (v20.10+)
 *   [Docker Compose](https://docs.docker.com/compose/install/) (v2.x)
-
-## 🚀 Instructions de Déploiement
-
-### 1. Cloner le dépôt :
-```bash
-git clone [https://github.com/](https://github.com/)[Ton-Nom-Utilisateur]/langflow-docker-stack.git
-cd langflow-docker-stack
-```
-
 # 🧠 Infrastructure as Code : Déploiement Sécurisé de Langflow
 
 ## 📋 Description du Projet
@@ -56,8 +47,8 @@ Pour lancer cette infrastructure en local ou sur un serveur (environnement Linux
 
 ### 1. Cloner le dépôt :
 ```bash
-git clone [https://github.com/](https://github.com/)[Ton-Nom-Utilisateur]/langflow-docker-stack.git
-cd langflow-docker-stack 
+git clone https://github.com/Tizeibm/langflow-docker-stack-.git
+cd langflow-docker-stack-
 ```
 ### 2. Configuration de l'environnement:
 Copier le fichier d'exemple et remplir les variables nécessaires avec vos propres identifiants sécurisés.
